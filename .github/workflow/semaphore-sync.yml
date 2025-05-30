@@ -1,0 +1,146 @@
+name: Sync Semaphore Projects
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'automations/**'
+
+env:
+  SEMAPHORE_API_URL: http://semaphore.local:3000/api
+  GITHUB_REPO: ${{ github.repository }}
+
+jobs:
+
+  create-project:
+    name: Create Project
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Create Projects
+        env:
+          SEMAPHORE_API_TOKEN: ${{ secrets.SEMAPHORE_API_TOKEN }}
+        run: |
+          for dir in automations/*; do
+            [ -d "$dir" ] || continue
+            project=$(basename "$dir")
+
+            echo "🔎 Checking for project '$project'"
+            PROJECT_EXISTS=$(curl -s -H "Authorization: Bearer $SEMAPHORE_API_TOKEN" "$SEMAPHORE_API_URL/projects" | jq -r ".[] | select(.name==\"$project\") | .id")
+
+            if [ -z "$PROJECT_EXISTS" ]; then
+              echo "➕ Creating project '$project'"
+              curl -s -X POST -H "Authorization: Bearer $SEMAPHORE_API_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d "{\"name\":\"$project\",\"alert\":false}" \
+                "$SEMAPHORE_API_URL/projects"
+            else
+              echo "✅ Project '$project' already exists"
+            fi
+          done
+
+
+  create-inventory:
+    name: Create Inventory
+    runs-on: ubuntu-latest
+    needs: create-project
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Add Inventories
+        env:
+          SEMAPHORE_API_TOKEN: ${{ secrets.SEMAPHORE_API_TOKEN }}
+        run: |
+          for dir in automations/*; do
+            [ -d "$dir" ] || continue
+            project=$(basename "$dir")
+
+            PROJECT_ID=$(curl -s -H "Authorization: Bearer $SEMAPHORE_API_TOKEN" "$SEMAPHORE_API_URL/projects" | jq -r ".[] | select(.name==\"$project\") | .id")
+
+            if [ -f "$dir/inventory.inv" ]; then
+              echo "📦 Adding inventory to '$project'"
+              INV_CONTENT=$(jq -Rs . < "$dir/inventory.inv")
+              curl -s -X POST -H "Authorization: Bearer $SEMAPHORE_API_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d "{\"name\":\"default\",\"inventory\":$INV_CONTENT,\"type\":\"static\"}" \
+                "$SEMAPHORE_API_URL/project/$PROJECT_ID/inventory"
+            fi
+          done
+
+
+  link-repo:
+    name: Link GitHub Repo
+    runs-on: ubuntu-latest
+    needs: create-inventory
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Link Repositories
+        env:
+          SEMAPHORE_API_TOKEN: ${{ secrets.SEMAPHORE_API_TOKEN }}
+        run: |
+          for dir in automations/*; do
+            [ -d "$dir" ] || continue
+            project=$(basename "$dir")
+
+            PROJECT_ID=$(curl -s -H "Authorization: Bearer $SEMAPHORE_API_TOKEN" "$SEMAPHORE_API_URL/projects" | jq -r ".[] | select(.name==\"$project\") | .id")
+
+            echo "🔗 Linking repository for project '$project'"
+            curl -s -X POST -H "Authorization: Bearer $SEMAPHORE_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"name\": \"$project-repo\",
+                \"project_id\": $PROJECT_ID,
+                \"git_url\": \"https://github.com/$GITHUB_REPO.git\",
+                \"git_branch\": \"main\",
+                \"git_path\": \"automations/$project\"
+              }" \
+              "$SEMAPHORE_API_URL/repositories"
+          done
+
+
+  link-ad:
+    name: Link AD Group
+    runs-on: ubuntu-latest
+    needs: link-repo
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Link AD Group
+        env:
+          SEMAPHORE_API_TOKEN: ${{ secrets.SEMAPHORE_API_TOKEN }}
+        run: |
+          for dir in automations/*; do
+            [ -d "$dir" ] || continue
+            project=$(basename "$dir")
+            config="$dir/config.acl"
+
+            if [ ! -f "$config" ]; then
+              echo "⚠️ No config.acl for '$project'"
+              continue
+            fi
+
+            GROUP=$(jq -r '.ad_group' "$config")
+            PROJECT_ID=$(curl -s -H "Authorization: Bearer $SEMAPHORE_API_TOKEN" "$SEMAPHORE_API_URL/projects" | jq -r ".[] | select(.name==\"$project\") | .id")
+
+            echo "🔐 Creating team '$GROUP' for project '$project'"
+            curl -s -X POST -H "Authorization: Bearer $SEMAPHORE_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"name\": \"$GROUP\", \"project_id\": $PROJECT_ID, \"role\": \"admin\"}" \
+              "$SEMAPHORE_API_URL/project/$PROJECT_ID/teams"
+          done
