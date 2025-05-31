@@ -1,0 +1,10 @@
+{
+  "name": "pride.pem",
+  "type": "ssh",
+  "override_secret": true,
+  "project_id": 4,
+  "ssh": {
+    "login": "user",
+    "private_key": "123456"
+  }
+}
