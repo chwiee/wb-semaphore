@@ -2,7 +2,12 @@ module github.com/chwiee/wb-semaphore
 
 go 1.24.3
 
-require github.com/spf13/viper v1.20.1
+require (
+	github.com/go-chi/chi v1.5.5
+	github.com/go-chi/chi/v5 v5.2.3
+	github.com/spf13/viper v1.20.1
+	golang.org/x/sync v0.10.0
+)
 
 require (
 	github.com/fsnotify/fsnotify v1.8.0 // indirect

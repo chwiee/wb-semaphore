@@ -1,0 +1,18 @@
+GET http://localhost:8000/projects
+
+###
+
+GET http://localhost:8000/project/3
+
+###
+
+GET http://localhost:3000/api/project/3/keys?Key%20type=none&sort=type&order=asc' \
+  accept: application/json
+  Authorization: Bearer s9iu1iwfobl4k4k7ylfvcudjeln2r8-lyw3o8r8k_b4=
+
+
+###
+
+GET http://localhost:3000/api/project/3/inventory?sort=name&order=asc' \
+  accept: application/json
+  Authorization: Bearer s9iu1iwfobl4k4k7ylfvcudjeln2r8-lyw3o8r8k_b4=

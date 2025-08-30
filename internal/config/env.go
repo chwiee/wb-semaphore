@@ -17,6 +17,9 @@ const (
 	DefaultDatabasePassword     = "password"
 	DefaultDatabaseMaxIdleConns = 10
 	DefaultDatabaseMaxOpenConns = 100
+
+	DefaultSemaphoreURL = "http://localhost:3000/api/"
+	DefaultBearerToken  = "s9iu1iwfobl4k4k7ylfvcudjeln2r8-lyw3o8r8k_b4="
 )
 
 var Viper *viper.Viper
@@ -114,4 +117,20 @@ func GetDatabaseMaxOpenConns() int {
 		return maxOpenConns
 	}
 	return DefaultDatabaseMaxOpenConns
+}
+
+func GetSemaphoreURL() string {
+	url := Viper.GetString("semaphore.url")
+	if len(url) > 0 {
+		return url
+	}
+	return DefaultSemaphoreURL
+}
+
+func GetBearerToken() string {
+	token := Viper.GetString("semaphore.token")
+	if len(token) > 0 {
+		return token
+	}
+	return DefaultBearerToken
 }
