@@ -20,6 +20,7 @@ type ProjectHandler struct {
 	Inventory *services.InventoryService
 	Repos     *services.RepoService
 	Tasks     *services.TaskService
+	Template  *services.TemplateService
 }
 
 func NewProjectHandler() *ProjectHandler {
@@ -33,6 +34,7 @@ func NewProjectHandler() *ProjectHandler {
 		Inventory: services.NewInventoryService(base, token, client),
 		Repos:     services.NewRepoService(base, token, client),
 		Tasks:     services.NewTaskService(base, token, client),
+		Template:  services.NewTemplateService(base, token, client),
 	}
 }
 
@@ -118,7 +120,7 @@ func (h *ProjectHandler) GetProjectDetail(w http.ResponseWriter, r *http.Request
 	})
 
 	g.Go(func() error {
-		tasks, err := h.Tasks.ListByProject(gctx, projectID)
+		tasks, err := h.Template.ListByProject(gctx, projectID)
 		if err != nil {
 			return err
 		}
@@ -158,4 +160,60 @@ func (h *ProjectHandler) GetProjectDetail(w http.ResponseWriter, r *http.Request
 	for _, line := range taskOut {
 		fmt.Fprintf(w, "\t%s\n", line)
 	}
+}
+
+// GET /task/{project}/{inventory}/{task} -> Run task on semaphore by filter name values
+func (h ProjectHandler) RunTask(w http.ResponseWriter, r *http.Request) {
+	project := chi.URLParam(r, "project")
+	inventory := chi.URLParam(r, "inventory")
+	task := chi.URLParam(r, "task")
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	g, gctx := errgroup.WithContext(ctx)
+
+	var (
+		projID int
+		invID  int
+		taskID int
+	)
+
+	p, err := h.Projects.Filter(gctx, project)
+	if err != nil {
+		http.Error(w, "failed to filter project: "+err.Error(), http.StatusBadGateway)
+		return
+	}
+	projID = p.ID
+
+	g.Go(func() error {
+		i, err := h.Inventory.Filter(gctx, projID, inventory)
+		if err != nil {
+			return err
+		}
+		invID = i.ID
+		return nil
+	})
+
+	g.Go(func() error {
+		t, err := h.Template.Filter(gctx, projID, task)
+		if err != nil {
+			return err
+		}
+		taskID = t.ID
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
+		http.Error(w, "aggregation error: "+err.Error(), http.StatusBadGateway)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	fmt.Fprintf(w, " Project ID: %d\n Inventory ID: %d\n Task ID: %d", projID, invID, taskID)
+	res, err := h.Tasks.Run(ctx, projID, invID, taskID)
+	if err != nil {
+		http.Error(w, "failed to run task: "+err.Error(), http.StatusBadGateway)
+		return
+	}
+	fmt.Fprintf(w, "\n\n Task started with ID: %d\n", res.ID)
 }

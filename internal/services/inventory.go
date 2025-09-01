@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/chwiee/wb-semaphore/internal/domain"
 )
@@ -41,4 +42,20 @@ func (s *InventoryService) ListByProject(ctx context.Context, projectID int) ([]
 		return nil, fmt.Errorf("inventory decode: %w", err)
 	}
 	return out, nil
+}
+
+func (s *InventoryService) Filter(ctx context.Context, projectID int, inventory string) (*domain.Inventory, error) {
+	inventories, err := s.ListByProject(ctx, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("inventory lists reqeust: %w", err)
+	}
+
+	for _, i := range inventories {
+		if strings.EqualFold(i.Name, inventory) {
+			return &i, nil
+		}
+	}
+
+	return nil, fmt.Errorf("inventory '%s' not found", inventory)
+
 }

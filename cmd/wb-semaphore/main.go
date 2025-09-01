@@ -20,6 +20,7 @@ func main() {
 	// Rotas
 	r.Get("/projects", h.ListProjects)
 	r.Get("/project/{id}", h.GetProjectDetail)
+	r.Post("/task/{project}/{inventory}/{task}", h.RunTask)
 
 	// Health
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/chwiee/wb-semaphore/internal/domain"
 )
@@ -56,4 +57,19 @@ func (s *ProjectService) Get(ctx context.Context, id int) (*domain.Project, erro
 		return nil, fmt.Errorf("project decode: %w", err)
 	}
 	return &p, nil
+}
+
+func (s *ProjectService) Filter(ctx context.Context, project string) (*domain.Project, error) {
+	projects, err := s.List(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("project list request: %w", err)
+	}
+
+	for _, p := range projects {
+		if strings.EqualFold(p.Name, project) {
+			return &p, nil
+		}
+	}
+
+	return nil, fmt.Errorf("project '%s' not found", project)
 }

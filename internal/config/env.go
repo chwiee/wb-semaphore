@@ -26,7 +26,7 @@ var Viper *viper.Viper
 
 func init() {
 	v := viper.New()
-	v.SetEnvPrefix("app")
+	v.SetEnvPrefix("wb")
 	v.AutomaticEnv()
 	Viper = v
 }

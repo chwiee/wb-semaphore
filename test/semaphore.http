@@ -1,3 +1,5 @@
+## API GoLang
+
 GET http://localhost:8000/projects
 
 ###
@@ -6,6 +8,21 @@ GET http://localhost:8000/project/3
 
 ###
 
+GET http://localhost:8000/task/aws/rabbitmq/install-kube
+
+###
+
+POST http://localhost:8000/task/aws/kube-local-nodes/teste2
+  content-type: application/json
+  accept: application/json 
+  Authorization: Bearer s9iu1iwfobl4k4k7ylfvcudjeln2r8-lyw3o8r8k_b4=
+
+
+  
+
+### API direta do Semaphore para Debug rapido
+
+
 GET http://localhost:3000/api/project/3/keys?Key%20type=none&sort=type&order=asc' \
   accept: application/json
   Authorization: Bearer s9iu1iwfobl4k4k7ylfvcudjeln2r8-lyw3o8r8k_b4=
@@ -13,6 +30,25 @@ GET http://localhost:3000/api/project/3/keys?Key%20type=none&sort=type&order=asc
 
 ###
 
-GET http://localhost:3000/api/project/3/inventory?sort=name&order=asc' \
+GET http://localhost:3000/api/project/3/inventory?sort=name&order=asc' 
   accept: application/json
   Authorization: Bearer s9iu1iwfobl4k4k7ylfvcudjeln2r8-lyw3o8r8k_b4=
+
+
+###
+
+GET http://localhost:3000/api/project/3/templates/1/tasks' \
+  accept: application/json
+  Authorization: Bearer s9iu1iwfobl4k4k7ylfvcudjeln2r8-lyw3o8r8k_b4=
+
+###
+
+POST http://localhost:3000/api/project/3/tasks 
+  content-type: application/json
+  accept: application/json 
+  Authorization: Bearer s9iu1iwfobl4k4k7ylfvcudjeln2r8-lyw3o8r8k_b4=
+
+  {
+    "template_id": 4,
+    "inventory_id": 1
+  }
