@@ -8,10 +8,6 @@ GET http://localhost:8000/project/3
 
 ###
 
-GET http://localhost:8000/task/aws/rabbitmq/install-kube
-
-###
-
 POST http://localhost:8000/task/aws/kube-local-nodes/teste2
   content-type: application/json
   accept: application/json 
